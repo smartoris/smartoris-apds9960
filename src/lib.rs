@@ -26,7 +26,21 @@
 #![feature(prelude_import)]
 #![warn(missing_docs)]
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 #![cfg_attr(not(feature = "std"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+pub mod reg;
+
+mod drv;
+mod ports;
+
+pub use self::{drv::Apds9960Drv, ports::i2c::Apds9960I2CPort};
+
+/// Default APDS-9960 I²C slave address.
+pub const DEFAULT_ADDR: u8 = 0x39;
 
 #[prelude_import]
 #[allow(unused_imports)]

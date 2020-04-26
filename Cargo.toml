@@ -24,3 +24,4 @@ std = ["drone-core/std", "futures/std"]
 [dependencies]
 drone-core = { version = "0.12.0", path = "../../drone-os/drone-core" }
 futures = { version = "0.3.0", default-features = false }
+async-trait = "0.1"
