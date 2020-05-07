@@ -1,41 +1,26 @@
 macro_rules! apds9960_reg {
     (
-        #[$($attr:meta)*]
-        $vis:vis struct $name:ident {
-            type: $type:ident,
-            size: $size:literal,
-            addr: $addr:literal,
-            reset: $reset:literal,
-            mode: $mode:ident,
-            $($mode_tt:tt)*
-        }
-        $(
-            $bitfield:ident {
-                $($field:ident($($field_tt:tt)*),)*
-            }
-        )?
+        $(#[$($attr:meta)*])*
+        $name:ident $type:ident $size:literal $addr:literal $reset:literal
+        $mode:ident { $($mode_tt:tt)* }
+        [ $($field:ident($($field_tt:tt)*),)* ]
     ) => {
-        #[$($attr)*]
-        #[derive(Clone, Copy$(, $bitfield)?)]
-        $(
-            #[bitfield(
-                $($field($mode, $($field_tt)*),)*)
-            ]
-        )?
-        $vis struct $name($type);
+        $(#[$($attr)*])*
+        #[derive(Clone, Copy, Bitfield)]
+        #[bitfield($($field($mode, $($field_tt)*),)*)]
+        pub struct $name($type);
         impl Default for $name {
             fn default() -> Self {
                 $name($reset)
             }
         }
-        apds9960_reg!($mode { $($mode_tt)* } $name, $type, $size, $addr);
+        apds9960_reg!($name $type $size $addr $mode { $($mode_tt)* });
     };
 
     (
-        r {
-            #[$($load_attr:meta)*] fn $load:ident,
+        $name:ident $type:ident $size:literal $addr:literal r {
+            #[$($load_attr:meta)*] fn $load:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
         impl<A> Apds9960Drv<A> {
             #[$($load_attr)*]
@@ -49,11 +34,10 @@ macro_rules! apds9960_reg {
     };
 
     (
-        w {
-            $(#[$($store_val_attr:meta)*])* fn $store_val:ident,
-            $(#[$($store_attr:meta)*])* fn $store:ident,
+        $name:ident $type:ident $size:literal $addr:literal w {
+            $(#[$($store_val_attr:meta)*])* fn $store_val:ident;
+            $(#[$($store_attr:meta)*])* fn $store:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($store_val_attr)*])*
@@ -64,7 +48,6 @@ macro_rules! apds9960_reg {
             ) -> impl Future<Output = ()> + 'a {
                 self.store_reg(i2c, u16::from(value.0), $addr, $size)
             }
-
             $(#[$($store_attr)*])*
             pub fn $store<'a>(
                 &'a mut self,
@@ -78,33 +61,31 @@ macro_rules! apds9960_reg {
     };
 
     (
-        rw {
-            $(#[$($load_attr:meta)*])* fn $load:ident,
-            $(#[$($store_val_attr:meta)*])* fn $store_val:ident,
-            $(#[$($store_attr:meta)*])* fn $store:ident,
+        $name:ident $type:ident $size:literal $addr:literal rw {
+            $(#[$($load_attr:meta)*])* fn $load:ident;
+            $(#[$($store_val_attr:meta)*])* fn $store_val:ident;
+            $(#[$($store_attr:meta)*])* fn $store:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
         apds9960_reg! {
-            r {
-                $(#[$($load_attr)*])* fn $load,
+            $name $type $size $addr r {
+                $(#[$($load_attr)*])* fn $load;
             }
-            $name, $type, $size, $addr
         }
         apds9960_reg! {
-            w {
-                $(#[$($store_val_attr)*])* fn $store_val,
-                $(#[$($store_attr)*])* fn $store,
+            $name $type $size $addr w {
+                $(#[$($store_val_attr)*])* fn $store_val;
+                $(#[$($store_attr)*])* fn $store;
             }
-            $name, $type, $size, $addr
         }
     };
+}
 
+macro_rules! apds9960_reg_raw {
     (
-        r_raw {
-            $(#[$($load_attr:meta)*])* fn $load:ident,
+        $type:ident $size:literal $addr:literal r {
+            $(#[$($load_attr:meta)*])* fn $load:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($load_attr)*])*
@@ -118,10 +99,9 @@ macro_rules! apds9960_reg {
     };
 
     (
-        w_raw {
-            $(#[$($store_attr:meta)*])* fn $store:ident,
+        $type:ident $size:literal $addr:literal w {
+            $(#[$($store_attr:meta)*])* fn $store:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($store_attr)*])*
@@ -136,32 +116,29 @@ macro_rules! apds9960_reg {
     };
 
     (
-        rw_raw {
-            $(#[$($load_attr:meta)*])* fn $load:ident,
-            $(#[$($store_attr:meta)*])* fn $store:ident,
+        $type:ident $size:literal $addr:literal rw {
+            $(#[$($load_attr:meta)*])* fn $load:ident;
+            $(#[$($store_attr:meta)*])* fn $store:ident;
         }
-        $name:ident, $type:ident, $size:literal, $addr:literal
     ) => {
-        apds9960_reg! {
-            r_raw {
-                $(#[$($load_attr)*])* fn $load,
+        apds9960_reg_raw! {
+            $type $size $addr r {
+                $(#[$($load_attr)*])* fn $load;
             }
-            $name, $type, $size, $addr
         }
-        apds9960_reg! {
-            w_raw {
-                $(#[$($store_attr)*])* fn $store,
+        apds9960_reg_raw! {
+            $type $size $addr w {
+                $(#[$($store_attr)*])* fn $store;
             }
-            $name, $type, $size, $addr
         }
     };
 }
 
 macro_rules! apds9960_reg_touch {
     (
-        $addr:literal,
+        $addr:literal;
         $(#[$($attr:meta)*])*
-        fn $name:ident,
+        fn $name:ident;
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($attr)*])*
