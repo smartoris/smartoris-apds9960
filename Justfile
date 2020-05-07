@@ -1,3 +1,7 @@
+cortexm_core := 'cortexm4f_r0p1'
+stm32_mcu := 'stm32f401'
+export DRONE_RUSTFLAGS := '--cfg cortexm_core="' + cortexm_core + '" ' + '--cfg stm32_mcu="' + stm32_mcu + '"'
+
 # Install dependencies
 deps:
 	rustup component add clippy
@@ -22,7 +26,7 @@ doc-open: doc
 
 # Run the tests
 test:
-	cargo test --features std
+	drone env -- cargo test --features "std drone-cortexm/std drone-stm32-map/std smartoris-i2c/std"
 
 # Update README.md
 readme:

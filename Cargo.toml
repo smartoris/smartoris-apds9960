@@ -25,3 +25,8 @@ std = ["drone-core/std", "futures/std"]
 drone-core = { version = "0.12.0", path = "../../drone-os/drone-core" }
 futures = { version = "0.3.0", default-features = false }
 async-trait = "0.1"
+
+[dev-dependencies]
+drone-cortexm = { version = "0.12.0", path = "../../drone-os/drone-cortexm" }
+drone-stm32-map = { version = "0.12.0", features = ["dma", "i2c"], path = "../../drone-os/drone-stm32-map" }
+smartoris-i2c = { version = "0.1.0", path = "../smartoris-i2c" }

@@ -17,6 +17,99 @@
 //! std = ["smartoris-apds9960/std"]
 //! ```
 //!
+//! The driver can be used with any I²C implementation. Here is an example of
+//! integration with [`smartoris-i2c`](https://crates.io/crates/smartoris-i2c)
+//! crate.
+//!
+//! Example of usage:
+//!
+//! ```no_run
+//! # #![feature(const_fn)]
+//! # use drone_stm32_map::periph::{
+//! #     dma::ch::{Dma1Ch5, Dma1Ch6},
+//! #     i2c::I2C1,
+//! # };
+//! # mod thr {
+//! #     use drone_stm32_map::thr::*;
+//! #     drone_cortexm::thr::vtable! {
+//! #         use Thr;
+//! #         pub struct Vtable;
+//! #         pub struct Handlers;
+//! #         pub struct Thrs;
+//! #         pub struct ThrsInit;
+//! #         static THREADS;
+//! #         pub 16: DMA1_CH5;
+//! #         pub 17: DMA1_CH6;
+//! #         pub 31: I2C1_EV;
+//! #         pub 32: I2C1_ER;
+//! #     }
+//! #     drone_cortexm::thr! {
+//! #         use THREADS;
+//! #         pub struct Thr {}
+//! #         pub struct ThrLocal {}
+//! #     }
+//! # }
+//! # async fn handler() {
+//! # let mut i2c1: smartoris_i2c::I2CDrv<
+//! #     I2C1,
+//! #     thr::I2C1Ev,
+//! #     thr::I2C1Er,
+//! #     Dma1Ch6,
+//! #     thr::Dma1Ch6,
+//! #     Dma1Ch5,
+//! #     thr::Dma1Ch5,
+//! # > = unsafe { core::mem::MaybeUninit::uninit().assume_init() };
+//! /// Adapters for external crates.
+//! mod adapters {
+//!     /// A marker type for port implementations in this module.
+//!     pub struct Adapters;
+//!
+//!     /// APDS-9960 adapters.
+//!     mod apds9960 {
+//!         use super::Adapters;
+//!         use async_trait::async_trait;
+//!         use drone_cortexm::thr::prelude::*;
+//!         use drone_stm32_map::periph::{dma::ch::DmaChMap, i2c::I2CMap};
+//!         use smartoris_apds9960::Apds9960I2CPort;
+//!         use smartoris_i2c::I2CDrv;
+//!
+//!         #[async_trait]
+//!         impl<
+//!             I2C: I2CMap,
+//!             I2CEv: IntToken,
+//!             I2CEr: IntToken,
+//!             DmaTx: DmaChMap,
+//!             DmaTxInt: IntToken,
+//!             DmaRx: DmaChMap,
+//!             DmaRxInt: IntToken,
+//!         > Apds9960I2CPort<Adapters>
+//!             for I2CDrv<I2C, I2CEv, I2CEr, DmaTx, DmaTxInt, DmaRx, DmaRxInt>
+//!         {
+//!             async fn write(&mut self, addr: u8, buf: Box<[u8]>, count: usize) -> Box<[u8]> {
+//!                 self.master(buf).write(addr, ..count).await.stop()
+//!             }
+//!
+//!             async fn read(&mut self, addr: u8, buf: Box<[u8]>, count: usize) -> Box<[u8]> {
+//!                 self.master(buf).write(addr, ..1).await.read(addr, ..count).await.stop()
+//!             }
+//!         }
+//!     }
+//! }
+//!
+//! use smartoris_apds9960::Apds9960Drv;
+//!
+//! let mut apds9960 = Apds9960Drv::init();
+//! apds9960.store_enable(&mut i2c1, |r| r.set_pon().set_pen()).await;
+//! loop {
+//!     if apds9960.load_status(&mut i2c1).await.pvalid() {
+//!         let pdata = apds9960.load_pdata(&mut i2c1).await;
+//!         println!("{}", pdata);
+//!     }
+//! }
+//! # }
+//! # fn main() {}
+//! ```
+//!
 //! # References
 //!
 //! * [Datasheet](https://docs.broadcom.com/doc/AV02-4191EN)
