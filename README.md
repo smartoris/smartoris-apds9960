@@ -55,12 +55,24 @@ mod adapters {
         > Apds9960I2CPort<Adapters>
             for I2CDrv<I2C, I2CEv, I2CEr, DmaTx, DmaTxInt, DmaRx, DmaRxInt>
         {
-            async fn write(&mut self, addr: u8, buf: Box<[u8]>, count: usize) -> Box<[u8]> {
-                self.master(buf).write(addr, ..count).await.stop()
+            type Error = !;
+
+            async fn write(
+                &mut self,
+                addr: u8,
+                buf: Box<[u8]>,
+                count: usize,
+            ) -> Result<Box<[u8]>, (Box<[u8]>, !)> {
+                Ok(self.master(buf).write(addr, ..count).await.stop())
             }
 
-            async fn read(&mut self, addr: u8, buf: Box<[u8]>, count: usize) -> Box<[u8]> {
-                self.master(buf).write(addr, ..1).await.read(addr, ..count).await.stop()
+            async fn read(
+                &mut self,
+                addr: u8,
+                buf: Box<[u8]>,
+                count: usize,
+            ) -> Result<Box<[u8]>, (Box<[u8]>, !)> {
+                Ok(self.master(buf).write(addr, ..1).await.read(addr, ..count).await.stop())
             }
         }
     }
@@ -69,11 +81,11 @@ mod adapters {
 use smartoris_apds9960::Apds9960Drv;
 
 let mut apds9960 = Apds9960Drv::init();
-apds9960.store_enable(&mut i2c1, |r| r.set_pon().set_pen()).await;
+apds9960.store_enable(&mut i2c1, |r| r.set_pon().set_pen()).await.into_ok();
 loop {
-    if apds9960.load_status(&mut i2c1).await.pvalid() {
-        let pdata = apds9960.load_pdata(&mut i2c1).await;
-        println!("{}", pdata);
+    if apds9960.load_status(&mut i2c1).await.into_ok().pvalid() {
+        let pdata = apds9960.load_pdata(&mut i2c1).await.into_ok();
+        println!("proximity: {}", pdata);
     }
 }
 ```

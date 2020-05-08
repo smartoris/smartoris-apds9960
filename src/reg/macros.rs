@@ -24,11 +24,11 @@ macro_rules! apds9960_reg {
     ) => {
         impl<A> Apds9960Drv<A> {
             #[$($load_attr)*]
-            pub fn $load<'a>(
+            pub fn $load<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
-            ) -> impl Future<Output = $name> + 'a {
-                self.load_reg(i2c, $addr, $size).map(|value| $name(value as $type))
+                i2c: &'a mut P,
+            ) -> impl Future<Output = Result<$name, P::Error>> + 'a {
+                self.load_reg(i2c, $addr, $size).map(|x| x.map(|x| $name(x as $type)))
             }
         }
     };
@@ -41,19 +41,19 @@ macro_rules! apds9960_reg {
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($store_val_attr)*])*
-            pub fn $store_val<'a>(
+            pub fn $store_val<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
+                i2c: &'a mut P,
                 value: $name,
-            ) -> impl Future<Output = ()> + 'a {
+            ) -> impl Future<Output = Result<(), P::Error>> + 'a {
                 self.store_reg(i2c, u16::from(value.0), $addr, $size)
             }
             $(#[$($store_attr)*])*
-            pub fn $store<'a>(
+            pub fn $store<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
+                i2c: &'a mut P,
                 f: impl FnOnce(&mut $name) -> &mut $name,
-            ) -> impl Future<Output = ()> + 'a {
+            ) -> impl Future<Output = Result<(), P::Error>> + 'a {
                 let value = f(&mut $name::default()).0;
                 self.store_reg(i2c, u16::from(value), $addr, $size)
             }
@@ -89,11 +89,11 @@ macro_rules! apds9960_reg_raw {
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($load_attr)*])*
-            pub fn $load<'a>(
+            pub fn $load<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
-            ) -> impl Future<Output = $type> + 'a {
-                self.load_reg(i2c, $addr, $size).map(|value| value as $type)
+                i2c: &'a mut P,
+            ) -> impl Future<Output = Result<$type, P::Error>> + 'a {
+                self.load_reg(i2c, $addr, $size).map(|x| x.map(|x| x as $type))
             }
         }
     };
@@ -105,11 +105,11 @@ macro_rules! apds9960_reg_raw {
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($store_attr)*])*
-            pub fn $store<'a>(
+            pub fn $store<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
+                i2c: &'a mut P,
                 value: $type,
-            ) -> impl Future<Output = ()> + 'a {
+            ) -> impl Future<Output = Result<(), P::Error>> + 'a {
                 self.store_reg(i2c, u16::from(value), $addr, $size)
             }
         }
@@ -142,10 +142,10 @@ macro_rules! apds9960_reg_touch {
     ) => {
         impl<A> Apds9960Drv<A> {
             $(#[$($attr)*])*
-            pub fn $name<'a>(
+            pub fn $name<'a, P: Apds9960I2CPort<A>>(
                 &'a mut self,
-                i2c: &'a mut impl Apds9960I2CPort<A>,
-            ) -> impl Future<Output = ()> + 'a {
+                i2c: &'a mut P,
+            ) -> impl Future<Output = Result<(), P::Error>> + 'a {
                 self.touch_reg(i2c, $addr)
             }
         }

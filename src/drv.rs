@@ -27,36 +27,66 @@ impl<A> Apds9960Drv<A> {
         self.addr = addr;
     }
 
-    pub(crate) async fn store_reg(
+    pub(crate) async fn store_reg<P: Apds9960I2CPort<A>>(
         &mut self,
-        i2c: &mut impl Apds9960I2CPort<A>,
+        i2c: &mut P,
         value: u16,
         reg: u8,
         size: usize,
-    ) {
+    ) -> Result<(), P::Error> {
         let mut buf = take(&mut self.buf);
         buf[0] = reg;
         buf[1..=size].copy_from_slice(&value.to_le_bytes()[..size]);
-        self.buf = i2c.write(self.addr, buf, size + 1).await;
+        match i2c.write(self.addr, buf, size + 1).await {
+            Ok(buf) => {
+                self.buf = buf;
+                Ok(())
+            }
+            Err((buf, err)) => {
+                self.buf = buf;
+                Err(err)
+            }
+        }
     }
 
-    pub(crate) async fn load_reg(
+    pub(crate) async fn load_reg<P: Apds9960I2CPort<A>>(
         &mut self,
-        i2c: &mut impl Apds9960I2CPort<A>,
+        i2c: &mut P,
         reg: u8,
         size: usize,
-    ) -> u16 {
+    ) -> Result<u16, P::Error> {
         let mut buf = take(&mut self.buf);
         buf[0] = reg;
-        self.buf = i2c.read(self.addr, buf, size).await;
-        let mut value = 0_u16.to_le_bytes();
-        value[..size].copy_from_slice(&self.buf[..size]);
-        u16::from_le_bytes(value)
+        match i2c.read(self.addr, buf, size).await {
+            Ok(buf) => {
+                self.buf = buf;
+                let mut value = 0_u16.to_le_bytes();
+                value[..size].copy_from_slice(&self.buf[..size]);
+                Ok(u16::from_le_bytes(value))
+            }
+            Err((buf, err)) => {
+                self.buf = buf;
+                Err(err)
+            }
+        }
     }
 
-    pub(crate) async fn touch_reg(&mut self, i2c: &mut impl Apds9960I2CPort<A>, reg: u8) {
+    pub(crate) async fn touch_reg<P: Apds9960I2CPort<A>>(
+        &mut self,
+        i2c: &mut P,
+        reg: u8,
+    ) -> Result<(), P::Error> {
         let mut buf = take(&mut self.buf);
         buf[0] = reg;
-        self.buf = i2c.write(self.addr, buf, 1).await;
+        match i2c.write(self.addr, buf, 1).await {
+            Ok(buf) => {
+                self.buf = buf;
+                Ok(())
+            }
+            Err((buf, err)) => {
+                self.buf = buf;
+                Err(err)
+            }
+        }
     }
 }
