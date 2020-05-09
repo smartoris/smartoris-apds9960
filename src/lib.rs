@@ -1,5 +1,5 @@
-//! APDS-9960 digital proximity, ambient light, RGB and gesture sensor [Drone
-//! OS] driver.
+//! APDS-9960 digital proximity, ambient light, RGB and gesture sensor driver
+//! for [Drone OS].
 //!
 //! # Usage
 //!
@@ -20,8 +20,6 @@
 //! The driver can be used with any I²C implementation. Here is an example of
 //! integration with [`smartoris-i2c`](https://crates.io/crates/smartoris-i2c)
 //! crate.
-//!
-//! Example of usage:
 //!
 //! ```no_run
 //! # #![feature(const_fn)]

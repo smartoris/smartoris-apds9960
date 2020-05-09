@@ -2,7 +2,9 @@ use crate::{Apds9960I2CPort, DEFAULT_ADDR};
 use core::{marker::PhantomData, mem::take};
 
 /// Internal buffer size.
-const BUF_SIZE: usize = 3;
+const BUF_SIZE: usize = 32 * 4;
+
+const GFIFO: u8 = 0xFC;
 
 /// APDS-9960 driver.
 pub struct Apds9960Drv<A> {
@@ -13,6 +15,8 @@ pub struct Apds9960Drv<A> {
 
 impl<A> Apds9960Drv<A> {
     /// Sets up a new [`Apds9960Drv`].
+    ///
+    /// This method allocates an internal buffer of [`BUF_SIZE`] bytes.
     #[must_use]
     pub fn init() -> Self {
         Self {
@@ -25,6 +29,31 @@ impl<A> Apds9960Drv<A> {
     /// Changes the I²C slave address.
     pub fn set_addr(&mut self, addr: u8) {
         self.addr = addr;
+    }
+
+    /// Performs a page read of `level` number of gesture datasets from FIFO.
+    ///
+    /// # Errors
+    ///
+    /// If `i2c` implementation returns `Err`, it's propagated to the caller.
+    pub async fn drain_fifo<P: Apds9960I2CPort<A>>(
+        &mut self,
+        i2c: &mut P,
+        level: u8,
+    ) -> Result<&[u8], P::Error> {
+        let mut buf = take(&mut self.buf);
+        buf[0] = GFIFO;
+        let size = (level << 2) as usize;
+        match i2c.read(self.addr, buf, size).await {
+            Ok(buf) => {
+                self.buf = buf;
+                Ok(&self.buf[0..size])
+            }
+            Err((buf, err)) => {
+                self.buf = buf;
+                Err(err)
+            }
+        }
     }
 
     pub(crate) async fn store_reg<P: Apds9960I2CPort<A>>(
