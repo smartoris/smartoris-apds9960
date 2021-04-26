@@ -1,12 +1,11 @@
-cortexm_core := 'cortexm4f_r0p1'
-stm32_mcu := 'stm32f401'
-export DRONE_RUSTFLAGS := '--cfg cortexm_core="' + cortexm_core + '" ' + '--cfg stm32_mcu="' + stm32_mcu + '"'
+test_features := 'drone-cortexm/std drone-stm32-map/std smartoris-i2c/std'
+target := `drone print target 2>/dev/null || echo ""`
 
 # Install dependencies
 deps:
-	rustup component add clippy
-	rustup component add rustfmt
 	type cargo-readme >/dev/null || cargo +stable install cargo-readme
+	type drone >/dev/null || cargo install drone
+	rustup target add $(drone print target)
 
 # Reformat the source code
 fmt:
@@ -26,7 +25,8 @@ doc-open: doc
 
 # Run the tests
 test:
-	drone env -- cargo test --features "std drone-cortexm/std drone-stm32-map/std smartoris-i2c/std"
+	cargo test --features "{{test_features}} std" \
+		--target=$(rustc --version --verbose | sed -n '/host/{s/.*: //;p}')
 
 # Update README.md
 readme:

@@ -22,7 +22,7 @@
 //! crate.
 //!
 //! ```no_run
-//! # #![feature(const_fn)]
+//! # #![feature(const_fn_fn_ptr_basics)]
 //! # #![feature(never_type)]
 //! # #![feature(unwrap_infallible)]
 //! # use drone_stm32_map::periph::{
@@ -31,22 +31,20 @@
 //! # };
 //! # mod thr {
 //! #     use drone_stm32_map::thr::*;
-//! #     drone_cortexm::thr::vtable! {
-//! #         use Thr;
-//! #         pub struct Vtable;
-//! #         pub struct Handlers;
-//! #         pub struct Thrs;
-//! #         pub struct ThrsInit;
-//! #         static THREADS;
-//! #         pub 16: DMA1_CH5;
-//! #         pub 17: DMA1_CH6;
-//! #         pub 31: I2C1_EV;
-//! #         pub 32: I2C1_ER;
-//! #     }
-//! #     drone_cortexm::thr! {
-//! #         use THREADS;
-//! #         pub struct Thr {}
-//! #         pub struct ThrLocal {}
+//! #     drone_cortexm::thr::nvic! {
+//! #         thread => pub Thr {};
+//! #         local => pub ThrLocal {};
+//! #         vtable => pub Vtable;
+//! #         index => pub Thrs;
+//! #         init => pub ThrsInit;
+//! #         threads => {
+//! #             interrupts => {
+//! #                 16: pub dma1_ch5;
+//! #                 17: pub dma1_ch6;
+//! #                 31: pub i2c1_ev;
+//! #                 32: pub i2c1_er;
+//! #             };
+//! #         };
 //! #     }
 //! # }
 //! # async fn handler() {
